@@ -1,0 +1,29 @@
+{
+  "name": "issue-canvas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MECE-audited issue decomposition board: notes -> cards -> todos, operated by Claude via MCP",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "issue-canvas-mcp": "dist/mcp/server.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test src/**/*.test.ts",
+    "mcp": "tsx src/mcp/server.ts",
+    "mcp:dist": "node dist/mcp/server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "tsx": "4.23.12",
+    "typescript": "5.9.3"
+  }
+}
