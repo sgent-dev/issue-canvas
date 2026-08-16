@@ -174,3 +174,16 @@ export function LocationSelect({
     </select>
   );
 }
+
+/** 狭い画面(スマホ幅)かどうか。styles.css の @media (max-width: 640px) と同じ閾値。 */
+export const NARROW_QUERY = "(max-width: 640px)";
+export function useNarrow(): boolean {
+  const [narrow, setNarrow] = useState(() => (typeof window !== "undefined" ? window.matchMedia(NARROW_QUERY).matches : false));
+  useEffect(() => {
+    const mq = window.matchMedia(NARROW_QUERY);
+    const on = (e: MediaQueryListEvent) => setNarrow(e.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return narrow;
+}

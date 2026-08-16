@@ -3,7 +3,7 @@ import type { Board } from "../../src/core/types.ts";
 import { ApiError, api } from "./api.ts";
 import { Canvas, type Cmd } from "./components/Canvas.tsx";
 import { Panel } from "./components/Panel.tsx";
-import { InlineText, useToast } from "./components/ui.tsx";
+import { InlineText, useNarrow, useToast } from "./components/ui.tsx";
 import { isStale } from "./lib.ts";
 
 const POLL_MS = 4000;
@@ -17,6 +17,7 @@ export function App() {
   const [focus, setFocus] = useState<{ id: string; n: number } | null>(null);
   const [meceOpen, setMeceOpen] = useState(false);
   const { msg, toast } = useToast();
+  const narrow = useNarrow();
   const busy = useRef(false);
 
   const refreshList = useCallback(() => api.listBoards().then(setBoards).catch((e) => setError(String(e))), []);
@@ -71,7 +72,13 @@ export function App() {
     [boardId, toast],
   );
 
-  const onFocus = useCallback((id: string) => setFocus((f) => ({ id, n: (f?.n ?? 0) + 1 })), []);
+  const onFocus = useCallback(
+    (id: string) => {
+      setFocus((f) => ({ id, n: (f?.n ?? 0) + 1 }));
+      if (narrow) setPanelOpen(false); // スマホ幅ではパネルがキャンバスを覆うので、フォーカス時は閉じて見せる
+    },
+    [narrow],
+  );
 
   if (!boardId || !board) {
     return (
@@ -113,14 +120,14 @@ export function App() {
           <button className="btn btn-accent" onClick={() => setMeceOpen(true)}>
             MECE判定
           </button>
-          <button className="btn" onClick={() => setPanelOpen((o) => !o)}>
+          <button className="btn" onClick={() => setPanelOpen((o) => !o)} aria-expanded={panelOpen}>
             メモ / 一覧 / TODO
           </button>
         </div>
       </header>
       <Canvas board={board} cmd={cmd} focus={focus} toast={toast} />
-      {panelOpen && <Panel board={board} cmd={cmd} onFocus={onFocus} toast={toast} />}
-      <Legend />
+      {panelOpen && <Panel board={board} cmd={cmd} onFocus={onFocus} toast={toast} onClose={() => setPanelOpen(false)} />}
+      <Legend collapsedByDefault={narrow} />
       {meceOpen && <MeceModal boardId={board.id} staleCount={staleCount} onClose={() => setMeceOpen(false)} toast={toast} />}
       {error && <div className="err-bar">{error}</div>}
       <div className={`toast ${msg ? "show" : ""}`} role="status">
@@ -278,9 +285,13 @@ function MeceModal({ boardId, staleCount, onClose, toast }: { boardId: string; s
   );
 }
 
-function Legend() {
+function Legend({ collapsedByDefault }: { collapsedByDefault: boolean }) {
+  // スマホ幅では畳んで表示(カードにかぶるため)。PC は従来どおり展開
+  const [open, setOpen] = useState(!collapsedByDefault);
+  useEffect(() => setOpen(!collapsedByDefault), [collapsedByDefault]);
   return (
-    <div className="legend">
+    <details className="legend" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
+      <summary>凡例</summary>
       <div className="row">
         <svg width="34" height="8">
           <line x1="0" y1="4" x2="26" y2="4" stroke="var(--danger)" strokeWidth="1.6" strokeDasharray="6 5" />
@@ -309,6 +320,6 @@ function Legend() {
       <div className="row">
         <span className="stale">⟳ 再判定待ち</span>編集/追加後、判定をやり直していないカード
       </div>
-    </div>
+    </details>
   );
 }
