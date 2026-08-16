@@ -12,7 +12,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { CommandError } from "../core/commands.js";
-import type { Store } from "../core/store.js";
+import { ConflictError, type Store } from "../core/store.js";
 import { TOOLS, toolByName } from "../core/tools.js";
 import * as C from "../core/commands.js";
 
@@ -21,6 +21,7 @@ export function createApp(store: Store): Hono {
 
   app.onError((e, c) => {
     if (e instanceof CommandError) return c.json({ error: e.message }, 400);
+    if (e instanceof ConflictError) return c.json({ error: e.message, conflict: true }, 409);
     if (e instanceof z.ZodError) return c.json({ error: "invalid arguments", issues: e.issues }, 400);
     const msg = e instanceof Error ? e.message : String(e);
     if (/ENOENT|not found/i.test(msg)) return c.json({ error: msg }, 404);

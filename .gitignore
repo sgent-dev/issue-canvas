@@ -4,3 +4,12 @@ data/*.json
 !data/.gitkeep
 .env
 *.log
+build/
+
+# terraform
+terraform/.terraform/
+terraform/.build/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/terraform.tfvars
+terraform/*.auto.tfvars

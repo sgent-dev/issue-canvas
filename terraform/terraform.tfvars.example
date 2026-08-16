@@ -1,0 +1,7 @@
+domain              = "issue.example.com"
+basic_auth_user     = "CHANGE_ME"
+basic_auth_password = "CHANGE_ME"
+# GitHub Actions OIDC sub。新規リポジトリは owner@id/repo@id 形式(gh api repos/<owner>/<repo> --jq .id で確認)
+github_repo_subs = [
+  "repo:OWNER@OWNER_ID/REPO@REPO_ID:ref:refs/heads/main",
+]
