@@ -107,7 +107,7 @@ export const TOOLS: ToolDef[] = [
   {
     name: "frame_approve_scope",
     title: "スコープ定義を承認",
-    description: "スコープ定義を承認する。承認済みフレームだけが越境(crossing)/モレ(gap)判定の基準になる。ユーザーの承認を得てから呼ぶこと。",
+    description: "スコープ定義を承認する。承認済みフレームだけが越境(crossing)/漏れ(gap)判定の基準になる。ユーザーの承認を得てから呼ぶこと。",
     scope: "board",
     schema: { frameId: z.string() },
     run: (b, { frameId }) => C.approveScope(b, frameId),
@@ -232,7 +232,7 @@ export const TOOLS: ToolDef[] = [
     name: "mece_material",
     title: "MECE判定の材料を取得",
     description:
-      "ダブり(越境/重複)・モレ判定に必要な材料(トップイシュー、各フレームのスコープ定義と承認状態、全カード、再判定待ちカード、既存の open 警告、却下記録)を返す。判定はあなた(呼び出し側モデル)が行い、結果を mece_report で書き戻す。サーバーは LLM を呼ばない。",
+      "ダブり(越境/重複)・漏れ判定に必要な材料(トップイシュー、各フレームのスコープ定義と承認状態、全カード、再判定待ちカード、既存の open 警告、却下記録)を返す。判定はあなた(呼び出し側モデル)が行い、結果を mece_report で書き戻す。サーバーは LLM を呼ばない。",
     scope: "board-read",
     schema: {},
     run: (b) => C.meceMaterial(b),
@@ -241,7 +241,7 @@ export const TOOLS: ToolDef[] = [
     name: "mece_report",
     title: "MECE判定結果の書き戻し",
     description:
-      "判定結果を保存する。flags: crossing(越境)/duplicate(重複)/dependency(依存)。gaps: モレ候補。judgedCardIds: 判定を済ませたカード(再判定待ちが解消される)。却下済み・既に open のものは自動でスキップされる。",
+      "判定結果を保存する。flags: crossing(越境)/duplicate(重複)/dependency(依存)。gaps: 漏れ候補。judgedCardIds: 判定を済ませたカード(再判定待ちが解消される)。却下済み・既に open のものは自動でスキップされる。",
     scope: "board",
     schema: { flags: z.array(flagInput).optional(), gaps: z.array(gapInput).optional(), judgedCardIds: z.array(z.string()).optional() },
     run: (b, { flags, gaps, judgedCardIds }) => C.reportJudgment(b, { flags, gaps, judgedCardIds }),
@@ -257,7 +257,7 @@ export const TOOLS: ToolDef[] = [
   },
   {
     name: "gap_resolve",
-    title: "モレ候補の処理",
+    title: "漏れ候補の処理",
     description:
       "adopt: 採用(level=board は新フレーム、level=frame はそのフレーム内カードとして作成。as/text/frameId/sectionId で上書き可) / dismiss: 不要(同じ候補は再提示しない)。",
     scope: "board",

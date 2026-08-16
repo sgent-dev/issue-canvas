@@ -96,6 +96,21 @@ export function Canvas({ board, cmd, focus, toast }: { board: Board; cmd: Cmd; f
   useEffect(() => {
     fit();
   }, [fit, board.id]);
+  /** 大項目(フレーム)の見出しをビューポート上端に合わせる(倍率は維持) */
+  const jumpToFrame = useCallback((key: string) => {
+    const el = els.current.get(key);
+    const vp = viewportRef.current,
+      w = worldRef.current;
+    if (!el || !vp || !w) return;
+    setView((v) => {
+      const wr = w.getBoundingClientRect(),
+        r = el.getBoundingClientRect();
+      const wx = (r.left - wr.left) / v.scale,
+        wy = (r.top - wr.top) / v.scale;
+      const pad = 8;
+      return { ...v, tx: (vp.clientWidth - r.width) / 2 - wx * v.scale, ty: pad - wy * v.scale };
+    });
+  }, []);
 
   // ---- wires (open flags) ----
   useLayoutEffect(() => {
@@ -153,14 +168,6 @@ export function Canvas({ board, cmd, focus, toast }: { board: Board; cmd: Cmd; f
             <path key={s.id} d={bezier(s.p1, s.p2)} className={s.type === "dependency" ? "w-dep" : "w-danger"} markerEnd={s.type === "crossing" ? "url(#arrDanger)" : undefined} />
           ))}
         </svg>
-        {wires
-          .filter((s) => s.type !== "crossing")
-          .map((s) => (
-            <span key={`l-${s.id}`} className={`wire-label ${s.type === "duplicate" ? "dup" : "dep"}`} style={{ left: (s.p1.x + s.p2.x) / 2, top: (s.p1.y + s.p2.y) / 2 }}>
-              {s.type === "duplicate" ? "重複?" : "依存"}
-            </span>
-          ))}
-
         {board.frames.map((f) => (
           <FrameView key={f.id} f={f} ctx={ctx} />
         ))}
@@ -171,6 +178,31 @@ export function Canvas({ board, cmd, focus, toast }: { board: Board; cmd: Cmd; f
         <NewFrameTile ctx={ctx} />
       </div>
       <div className="zoom-ctl">
+        <Popover trigger={<button className="jump-btn">大項目 ▾</button>} title="大項目へ移動">
+          {(close) => (
+            <ul className="jump-list">
+              {board.frames.map((f) => {
+                const pr = progress(board, f.id);
+                return (
+                  <li key={f.id}>
+                    <button onClick={() => (jumpToFrame(`frame:${f.id}`), close())}>
+                      <span className="jump-name">{f.name}</span>
+                      <span className="jump-cnt">
+                        {pr.done}/{pr.total}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+              <li>
+                <button onClick={() => (jumpToFrame("frame:unassigned"), close())}>
+                  <span className="jump-name">未分類</span>
+                  <span className="jump-cnt">{board.cards.filter((c) => c.frameId === null).length}</span>
+                </button>
+              </li>
+            </ul>
+          )}
+        </Popover>
         <button onClick={() => zoomAt(1 / 1.2)} aria-label="縮小">
           −
         </button>
@@ -272,7 +304,7 @@ function ScopeEditor({ f, onSave, onApprove }: { f: Frame; onSave: (t: string) =
   const [t, setT] = useState(f.scope.text);
   return (
     <div className="pop-body">
-      <p className="hint">この大項目が「含むもの / 含まないもの」を一文で。承認済みの定義だけが越境・モレ判定の基準になります。</p>
+      <p className="hint">この大項目が「含むもの / 含まないもの」を一文で。承認済みの定義だけが越境・漏れ判定の基準になります。</p>
       <textarea rows={3} value={t} onChange={(e) => setT(e.target.value)} placeholder="例: 新規顧客との接点づくりから受注まで。既存顧客の追加受注は含まない。" />
       <div className="pop-actions">
         {t.trim() && t.trim() !== f.scope.text && (
@@ -313,7 +345,7 @@ function UnassignedFrame({ ctx }: { ctx: Ctx }) {
   const cards = ctx.board.cards.filter((c) => c.frameId === null);
   return (
     <div className="frame frame-unassigned">
-      <div className="frame-head">
+      <div className="frame-head" ref={(el) => ctx.register("frame:unassigned", el)}>
         <div className="frame-title-row">
           <span className="frame-name">未分類</span>
           <span className="chip chip-none">インボックス</span>
@@ -496,7 +528,7 @@ function FlagBadge({ f, c, ctx }: { f: Flag; c: Card; ctx: Ctx }) {
 function GhostCard({ g, ctx }: { g: Gap; ctx: Ctx }) {
   return (
     <div className="card ghost">
-      <span className="ghost-tag">モレ候補</span>
+      <span className="ghost-tag">漏れ候補</span>
       <p className="card-text">未検討: {g.title}</p>
       <p className="ghost-reason">{g.reason}</p>
       <div className="ghost-actions">
@@ -512,7 +544,7 @@ function GhostFrame({ g, ctx }: { g: Gap; ctx: Ctx }) {
   return (
     <div className="frame ghost">
       <div className="frame-head">
-        <span className="ghost-tag">モレ候補(ボード)</span>
+        <span className="ghost-tag">漏れ候補(ボード)</span>
         <div className="frame-title-row">
           <span className="frame-name">{g.title}</span>
         </div>
