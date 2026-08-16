@@ -87,6 +87,10 @@ export function App() {
           await refreshList();
           setBoardId(id);
         }}
+        onDelete={async (id) => {
+          await api.deleteBoard(id);
+          await refreshList();
+        }}
       />
     );
   }
@@ -131,15 +135,19 @@ function BoardPicker({
   error,
   onOpen,
   onCreate,
+  onDelete,
 }: {
   boards: { id: string; title: string; updatedAt: string }[] | null;
   error: string | null;
   onOpen: (id: string) => void;
   onCreate: (id: string, title: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }) {
   const [id, setId] = useState("");
   const [title, setTitle] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState("");
   return (
     <div className="picker">
       <div className="picker-card">
@@ -152,12 +160,56 @@ function BoardPicker({
           {boards === null && <li className="hint">読み込み中…</li>}
           {boards?.length === 0 && <li className="hint">ボードはまだありません</li>}
           {boards?.map((b) => (
-            <li key={b.id}>
-              <button onClick={() => onOpen(b.id)}>
+            <li key={b.id} className="board-row">
+              <button className="board-open" onClick={() => onOpen(b.id)}>
                 <span className="bid">{b.id}</span>
                 <span className="btitle">{b.title}</span>
                 <span className="bdate">{b.updatedAt.slice(0, 16).replace("T", " ")}</span>
               </button>
+              {deleting === b.id ? (
+                <form
+                  className="board-del-confirm"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (confirmId !== b.id) return;
+                    setErr(null);
+                    try {
+                      await onDelete(b.id);
+                      setDeleting(null);
+                      setConfirmId("");
+                    } catch (e) {
+                      setErr(e instanceof Error ? e.message : String(e));
+                    }
+                  }}
+                >
+                  <span className="hint">復元できません。確認のため id「{b.id}」を入力:</span>
+                  <input autoFocus value={confirmId} onChange={(e) => setConfirmId(e.target.value)} placeholder={b.id} />
+                  <button type="submit" className="btn btn-danger" disabled={confirmId !== b.id}>
+                    完全に削除
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      setDeleting(null);
+                      setConfirmId("");
+                    }}
+                  >
+                    取消
+                  </button>
+                </form>
+              ) : (
+                <button
+                  className="board-del"
+                  title="このボードを削除"
+                  onClick={() => {
+                    setDeleting(b.id);
+                    setConfirmId("");
+                  }}
+                >
+                  ×
+                </button>
+              )}
             </li>
           ))}
         </ul>

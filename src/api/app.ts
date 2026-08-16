@@ -7,6 +7,7 @@
  *   GET  /api/boards/:id/summary
  *   GET  /api/boards/:id/mece        判定材料(Claude に渡す用)
  *   POST /api/boards/:id/cmd {name,args}   コマンド実行(src/core/tools.ts の board/board-read ツール)
+ *   DELETE /api/boards/:id           ボード削除(復元不可)
  */
 import { Hono } from "hono";
 import { z } from "zod";
@@ -44,6 +45,11 @@ export function createApp(store: Store): Hono {
   });
 
   app.get("/api/boards/:id", async (c) => c.json(await store.load(c.req.param("id"))));
+  app.delete("/api/boards/:id", async (c) => {
+    const id = c.req.param("id");
+    if (!(await store.delete(id))) return c.json({ error: `board not found: ${id}` }, 404);
+    return c.json({ deleted: id });
+  });
   app.get("/api/boards/:id/summary", async (c) => c.json(C.summary(await store.load(c.req.param("id")))));
   app.get("/api/boards/:id/mece", async (c) => c.json(C.meceMaterial(await store.load(c.req.param("id")))));
 

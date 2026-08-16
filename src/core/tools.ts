@@ -57,6 +57,19 @@ export const TOOLS: ToolDef[] = [
     },
   },
   {
+    name: "board_delete",
+    title: "ボード削除",
+    description: "ボードを丸ごと削除する(フレーム・カード・メモ・TODO すべて。復元不可)。必ずユーザーの明示的な確認を得てから呼ぶこと。confirm には削除するボード id をもう一度渡す。",
+    scope: "store",
+    schema: { id: z.string(), confirm: z.string().describe("誤操作防止: id と同じ文字列") },
+    run: async (store, { id, confirm }) => {
+      if (confirm !== id) throw new C.CommandError("confirm must equal id");
+      const deleted = await store.delete(id);
+      if (!deleted) throw new C.CommandError(`board not found: ${id}`);
+      return { deleted: id };
+    },
+  },
+  {
     name: "board_get",
     title: "ボード取得",
     description:

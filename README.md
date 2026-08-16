@@ -49,7 +49,7 @@ claude mcp add --scope user issue-canvas -- node /absolute/path/to/issue-canvas/
 
 | 分類 | ツール |
 |---|---|
-| ボード | `board_list` `board_create` `board_get`(summary/full) `board_set_title` |
+| ボード | `board_list` `board_create` `board_get`(summary/full) `board_set_title` `board_delete`(復元不可、confirm 必須) |
 | 大項目 / 中項目 | `frame_create` `frame_update` `frame_approve_scope` `frame_delete` `section_create` `section_delete` |
 | カード | `card_create` `card_update` `card_move` `card_delete` |
 | メモ | `note_add` `note_update` `note_delete` `note_to_card` |
@@ -73,6 +73,7 @@ claude mcp add --scope user issue-canvas -- node /absolute/path/to/issue-canvas/
 | フレーム | 配下カードは未分類へ |
 | セクション | 配下カードはフレーム直下へ |
 | TODO グループ | 要件カードに影響なし |
+| ボード | ファイルごと消える(復元不可)。UI では id の再入力、MCP では `confirm=id` が必要 |
 
 ## 開発
 
