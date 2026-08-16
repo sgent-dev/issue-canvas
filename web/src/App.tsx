@@ -120,7 +120,7 @@ export function App() {
           <button className="btn btn-accent" onClick={() => setMeceOpen(true)}>
             MECE判定
           </button>
-          <button className="btn" onClick={() => setPanelOpen((o) => !o)} aria-expanded={panelOpen}>
+          <button className={`btn btn-toggle ${panelOpen ? "on" : ""}`} onClick={() => setPanelOpen((o) => !o)} aria-expanded={panelOpen} title={panelOpen ? "パネルを閉じる" : "パネルを開く"}>
             メモ / 一覧 / TODO
           </button>
         </div>
@@ -246,7 +246,7 @@ function BoardPicker({
 }
 
 function MeceModal({ boardId, staleCount, onClose, toast }: { boardId: string; staleCount: number; onClose: () => void; toast: (m: string) => void }) {
-  const prompt = `issue-canvas の board「${boardId}」を MECE 判定して。mece_material で材料を取って、越境・重複・依存・モレを判定し、mece_report で書き戻して。結果は要約して教えて。`;
+  const prompt = `issue-canvas の board「${boardId}」を MECE 判定して。mece_material で材料を取って、越境・重複・依存・漏れを判定し、mece_report で書き戻して。結果は要約して教えて。`;
   const copy = async (text: string, label: string) => {
     await navigator.clipboard.writeText(text);
     toast(`${label}をコピーしました`);
@@ -274,7 +274,7 @@ function MeceModal({ boardId, staleCount, onClose, toast }: { boardId: string; s
             </button>
           </li>
         </ol>
-        <p className="hint">判定結果が保存されると、この画面は数秒以内に自動で更新されます(警告線・モレ候補・再判定待ちの解消)。</p>
+        <p className="hint">判定結果が保存されると、この画面は数秒以内に自動で更新されます(警告線・漏れ候補・再判定待ちの解消)。</p>
         <div className="modal-actions">
           <button className="btn" onClick={onClose}>
             閉じる
@@ -315,7 +315,7 @@ function Legend({ collapsedByDefault }: { collapsedByDefault: boolean }) {
         <svg width="34" height="10">
           <rect x="1" y="1" width="32" height="8" rx="3" fill="none" stroke="var(--ghost-line)" strokeWidth="1.4" strokeDasharray="4 3" />
         </svg>
-        モレ候補 — 未検討領域(採用/不要)
+        漏れ候補 — 未検討領域(採用/不要)
       </div>
       <div className="row">
         <span className="stale">⟳ 再判定待ち</span>編集/追加後、判定をやり直していないカード

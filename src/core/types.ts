@@ -19,7 +19,7 @@ export interface Section {
 export interface Frame {
   id: string;
   name: string;
-  /** スコープ定義文。approved のものだけが越境/モレ判定の基準になる */
+  /** スコープ定義文。approved のものだけが越境/漏れ判定の基準になる */
   scope: { text: string; status: ScopeStatus };
   sections: Section[];
   createdAt: string;
@@ -70,7 +70,7 @@ export interface Flag {
 
 export type GapStatus = "open" | "adopted" | "dismissed";
 
-/** モレ判定の結果 (level=board: 大項目として欠けている / level=frame: フレーム内で未検討) */
+/** 漏れ判定の結果 (level=board: 大項目として欠けている / level=frame: フレーム内で未検討) */
 export interface Gap {
   id: string;
   level: "board" | "frame";

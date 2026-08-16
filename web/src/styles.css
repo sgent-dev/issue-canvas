@@ -115,6 +115,20 @@ textarea {
   opacity: 0.92;
   background: var(--accent);
 }
+/* 開閉トグル: 開いている間は塗りを変えて状態が分かるように */
+.btn-toggle.on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+.btn-toggle.on::before {
+  content: "▸ ";
+}
+.btn-toggle::before {
+  content: "▪ ";
+  opacity: 0.55;
+}
 
 /* ---------- picker ---------- */
 .picker {
@@ -333,6 +347,7 @@ textarea {
   height: 100%;
   pointer-events: none;
   overflow: visible;
+  z-index: -1; /* フレーム/カードの下に描く(本文や漏れ候補の上に線が乗らない)。.world は transform でスタッキングコンテキスト */
 }
 .wires path {
   fill: none;
@@ -350,28 +365,6 @@ textarea {
 .m-danger {
   fill: var(--danger);
 }
-.wire-label {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  z-index: 5;
-  font-size: 11px;
-  border-radius: 10px;
-  padding: 2px 9px;
-  white-space: nowrap;
-  box-shadow: var(--shadow);
-  pointer-events: none;
-}
-.wire-label.dup {
-  background: var(--danger-soft);
-  color: var(--danger);
-  border: 1px solid var(--danger);
-}
-.wire-label.dep {
-  background: var(--surface);
-  color: var(--dep);
-  border: 1px solid var(--dep);
-  opacity: 0.9;
-}
 .zoom-ctl {
   position: absolute;
   right: 14px;
@@ -380,12 +373,51 @@ textarea {
   align-items: center;
   border: 1px solid var(--line);
   border-radius: 6px;
-  overflow: hidden;
+  overflow: visible; /* 大項目ポップオーバーを外に出す */
   background: var(--surface);
   box-shadow: var(--shadow);
 }
 .zoom-ctl button {
   padding: 5px 10px;
+}
+.zoom-ctl .jump-btn {
+  border-right: 1px solid var(--line);
+  font-size: 12px;
+}
+.zoom-ctl .pop-anchor {
+  position: static; /* ポップオーバーの基準をボタンではなくズームバー全体にする */
+}
+.zoom-ctl .pop {
+  left: auto;
+  right: 0; /* ズームバーの右端に揃える(はみ出さない) */
+  width: min(300px, calc(100vw - 32px));
+  padding: 8px 6px;
+}
+.jump-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+.jump-list button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  text-align: left;
+  padding: 7px 8px;
+  border-radius: 6px;
+  font-size: 12.5px;
+}
+.jump-list button:hover {
+  background: var(--surface2);
+}
+.jump-list .jump-cnt {
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  font-size: 11px;
 }
 .zoom-ctl button:hover {
   background: var(--surface2);
@@ -1338,6 +1370,12 @@ textarea {
     top: auto;
     bottom: 8px; /* フレーム見出し(スコープ状態)にかぶらないよう下へ */
     right: 8px;
+  }
+  .zoom-ctl .pop {
+    top: auto;
+    bottom: calc(100% + 6px); /* 下端にあるので上に開く */
+    max-height: 60vh;
+    overflow: auto;
   }
   .legend {
     left: 8px;

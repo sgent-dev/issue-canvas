@@ -3,7 +3,7 @@
  * Issue Canvas MCP server (stdio)
  *
  * ツール定義は src/core/tools.ts(REST API と共有)。
- * 判定(ダブり/モレ)は呼び出し側モデルが行う: mece_material → 判定 → mece_report。
+ * 判定(ダブり/漏れ)は呼び出し側モデルが行う: mece_material → 判定 → mece_report。
  * サーバー自身は LLM API を呼ばない。
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
