@@ -6,17 +6,14 @@
  * 判定(ダブり/モレ)は呼び出し側モデルが行う: mece_material → 判定 → mece_report。
  * サーバー自身は LLM API を呼ばない。
  */
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { JsonFileStore } from "../core/store.js";
+import { createStoreFromEnv } from "../core/store-select.js";
 import { TOOLS } from "../core/tools.js";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = process.env.ISSUE_CANVAS_DATA ?? path.resolve(here, "..", "..", "data");
-const store = new JsonFileStore(DATA_DIR);
+const { store, describe } = createStoreFromEnv();
 
 const server = new McpServer({ name: "issue-canvas", version: "0.1.0" });
 
@@ -57,9 +54,9 @@ for (const t of TOOLS) {
 }
 
 async function main(): Promise<void> {
-  await store.ensureDir();
+  if (store instanceof JsonFileStore) await store.ensureDir();
   await server.connect(new StdioServerTransport());
-  console.error(`[issue-canvas] MCP server ready (${TOOLS.length} tools, data: ${DATA_DIR})`);
+  console.error(`[issue-canvas] MCP server ready (${TOOLS.length} tools, store: ${describe})`);
 }
 
 main().catch((e) => {

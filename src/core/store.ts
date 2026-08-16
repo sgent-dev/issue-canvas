@@ -8,6 +8,14 @@ import path from "node:path";
 import { randomBytes } from "node:crypto";
 import type { Board } from "./types.js";
 
+/** 同時更新の衝突(別プロセスが先に保存した)。呼び出し側は再読込→再適用 */
+export class ConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ConflictError";
+  }
+}
+
 export interface Store {
   list(): Promise<{ id: string; title: string; updatedAt: string }[]>;
   load(id: string): Promise<Board>;

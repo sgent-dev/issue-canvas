@@ -44,6 +44,7 @@ claude mcp add --scope user issue-canvas -- node /absolute/path/to/issue-canvas/
 ```
 
 データは既定で `<repo>/data/<boardId>.json`(git 管理外)。`ISSUE_CANVAS_DATA` で変更可。
+AWS 構成(S3 にボードを置き、Web を CloudFront + Lambda で公開、MCP は S3 直結)にする場合は `ISSUE_CANVAS_STORE=s3 ISSUE_CANVAS_BUCKET=<bucket>`。構築手順は `terraform/README.md`。
 
 ## MCP ツール一覧
 

@@ -20,9 +20,12 @@
     "build:server": "tsc -p tsconfig.json",
     "dev:api": "tsx src/api/serve.ts",
     "dev:web": "vite --config web/vite.config.ts",
-    "serve": "node dist/api/serve.js"
+    "serve": "node dist/api/serve.js",
+    "build:lambda": "esbuild src/api/lambda.ts --bundle --platform=node --target=node22 --format=esm --external:@aws-sdk/* --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\" --outfile=build/lambda/index.mjs",
+    "copy-boards": "tsx scripts/copy-boards.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1105.0",
     "@hono/node-server": "2.1.0",
     "@modelcontextprotocol/sdk": "1.30.0",
     "hono": "4.13.1",
@@ -33,6 +36,7 @@
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "@vitejs/plugin-react": "6.0.5",
+    "esbuild": "0.28.2",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "tsx": "4.23.12",

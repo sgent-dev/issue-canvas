@@ -1,0 +1,45 @@
+name: deploy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write # OIDC
+  contents: read
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # インフラ未構築(変数未設定)の間は何もしない
+    if: vars.AWS_GITHUB_ACTIONS_ROLE_ARN != ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      - run: npm test
+      - name: Build web + lambda bundle
+        run: |
+          npm run build
+          npm run build:lambda
+          cd build/lambda && zip -q ../lambda.zip index.mjs
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Update Lambda code
+        run: |
+          aws lambda update-function-code --function-name "${{ vars.LAMBDA_FUNCTION_NAME }}" --zip-file fileb://build/lambda.zip --no-cli-pager
+          aws lambda wait function-updated --function-name "${{ vars.LAMBDA_FUNCTION_NAME }}"
+      - name: Sync SPA to S3
+        run: aws s3 sync web/dist/ "s3://${{ vars.ASSETS_BUCKET }}/" --delete
+      - name: Invalidate CloudFront
+        run: aws cloudfront create-invalidation --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" --paths "/*" --no-cli-pager
