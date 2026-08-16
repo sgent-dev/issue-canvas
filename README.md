@@ -30,8 +30,12 @@ Issue Canvas はそれを **構造(大項目=フレーム、中項目=セクシ�
 
 ```bash
 npm ci
-npm run build
+npm run build        # サーバー(tsc) + Web UI(vite)
+npm run serve        # http://127.0.0.1:8787 — Web UI + REST API(ローカル)
 ```
+
+Web UI(キャンバス + メモ/一覧/TODO パネル)と MCP は同じ `data/` を読むので、Claude が MCP で変えた内容は数秒で画面に反映されます(4 秒ポーリング)。
+開発時は `npm run dev:api` と `npm run dev:web`(Vite, `/api` をプロキシ)を並行起動。
 
 Claude Code に登録(ユーザースコープ = どのプロジェクトからでも使える):
 
@@ -78,8 +82,16 @@ npm run typecheck
 npm run mcp       # tsx で直接起動(開発用)
 ```
 
-構成: `src/core`(型・JSON ストア・コマンド層) / `src/mcp`(stdio サーバー、コマンド層の薄いラッパー)。
-UI(キャンバス)を足す場合も同じコマンド層を通す前提です。
+構成:
+
+| パス | 役割 |
+|---|---|
+| `src/core` | 型・JSON ストア・**コマンド層**・**ツール定義レジストリ(`tools.ts`)** — 唯一の変更経路 |
+| `src/mcp` | stdio MCP サーバー(レジストリを登録するだけ) |
+| `src/api` | Hono REST API(`POST /api/boards/:id/cmd {name,args}` でレジストリを実行)。ランタイム非依存 — ローカル node でも Lambda でも同じ `createApp` |
+| `web/` | Vite + React の SPA(キャンバス / メモ / カード一覧 / TODO) |
+
+インフラ(AWS 配置)の検討は `docs/infra-plan.md`。
 
 ## ライセンス
 
