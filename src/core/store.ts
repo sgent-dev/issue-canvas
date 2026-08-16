@@ -13,6 +13,8 @@ export interface Store {
   load(id: string): Promise<Board>;
   save(board: Board): Promise<void>;
   exists(id: string): Promise<boolean>;
+  /** ボードを丸ごと削除(復元不可)。存在しなければ false */
+  delete(id: string): Promise<boolean>;
 }
 
 export class JsonFileStore implements Store {
@@ -66,6 +68,16 @@ export class JsonFileStore implements Store {
     await fs.writeFile(tmp, JSON.stringify(board, null, 2) + "\n", "utf8");
     await fs.rename(tmp, target);
   }
+
+  async delete(id: string): Promise<boolean> {
+    try {
+      await fs.unlink(this.file(id));
+      return true;
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === "ENOENT") return false;
+      throw e;
+    }
+  }
 }
 
 export class MemoryStore implements Store {
@@ -83,5 +95,8 @@ export class MemoryStore implements Store {
   }
   async exists(id: string): Promise<boolean> {
     return this.boards.has(id);
+  }
+  async delete(id: string): Promise<boolean> {
+    return this.boards.delete(id);
   }
 }

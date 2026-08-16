@@ -36,10 +36,16 @@ test("errors: unknown command 400, bad args 400, missing board 404, duplicate bo
   const app = createApp(new MemoryStore());
   await post(app, "/api/boards", { id: "b1", title: "t" });
   assert.equal((await post(app, "/api/boards", { id: "b1", title: "t" })).status, 409);
+  await post(app, "/api/boards", { id: "b2", title: "t2" });
   assert.equal((await post(app, "/api/boards/b1/cmd", { name: "nope", args: {} })).status, 400);
   assert.equal((await post(app, "/api/boards/b1/cmd", { name: "card_update", args: { text: "x" } })).status, 400);
   assert.equal((await post(app, "/api/boards/b1/cmd", { name: "card_update", args: { cardId: "zz", text: "x" } })).status, 400);
   assert.equal((await app.request("/api/boards/nope")).status, 404);
   // store-scope tools are not exposed via cmd
   assert.equal((await post(app, "/api/boards/b1/cmd", { name: "board_create", args: { id: "x", title: "y" } })).status, 400);
+  assert.equal((await post(app, "/api/boards/b1/cmd", { name: "board_delete", args: { id: "b1", confirm: "b1" } })).status, 400);
+  // delete: 200 then 404
+  assert.equal((await app.request("/api/boards/b2", { method: "DELETE" })).status, 200);
+  assert.equal((await app.request("/api/boards/b2", { method: "DELETE" })).status, 404);
+  assert.equal((await app.request("/api/boards/b2")).status, 404);
 });

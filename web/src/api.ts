@@ -20,6 +20,7 @@ export const api = {
   listBoards: () => req<{ id: string; title: string; updatedAt: string }[]>("/api/boards"),
   createBoard: (id: string, title: string) => req<Board>("/api/boards", { method: "POST", body: JSON.stringify({ id, title }) }),
   getBoard: (id: string) => req<Board>(`/api/boards/${encodeURIComponent(id)}`),
+  deleteBoard: (id: string) => req<{ deleted: string }>(`/api/boards/${encodeURIComponent(id)}`, { method: "DELETE" }),
   getMece: (id: string) => req<unknown>(`/api/boards/${encodeURIComponent(id)}/mece`),
   cmd: <R = unknown>(id: string, name: string, args: Record<string, unknown> = {}) =>
     req<{ result: R; board: Board }>(`/api/boards/${encodeURIComponent(id)}/cmd`, { method: "POST", body: JSON.stringify({ name, args }) }),
