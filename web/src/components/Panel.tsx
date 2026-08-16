@@ -6,7 +6,7 @@ import { Ctl, InlineText, LocationSelect } from "./ui.tsx";
 
 type Tab = "memo" | "list" | "todo";
 
-export function Panel({ board, cmd, onFocus, toast }: { board: Board; cmd: Cmd; onFocus: (cardId: string) => void; toast: (m: string) => void }) {
+export function Panel({ board, cmd, onFocus, toast, onClose }: { board: Board; cmd: Cmd; onFocus: (cardId: string) => void; toast: (m: string) => void; onClose: () => void }) {
   const [tab, setTab] = useState<Tab>("memo");
   const pending = board.notes.filter((n) => !cardOf(board, n.cardId)).length;
   let done = 0,
@@ -31,6 +31,9 @@ export function Panel({ board, cmd, onFocus, toast }: { board: Board; cmd: Cmd; 
         </button>
         <button className={tab === "todo" ? "active" : ""} onClick={() => setTab("todo")}>
           TODO {total > 0 && <span className="cnt">{done}/{total}</span>}
+        </button>
+        <button className="panel-close" onClick={onClose} aria-label="パネルを閉じる" title="閉じる">
+          ×
         </button>
       </div>
       <div className="panel-view">

@@ -1,15 +1,21 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Board, Card, Flag, Frame, Gap, Section } from "../../../src/core/types.ts";
 import { STATUSES, cardOf, flagsForCard, frameOf, isStale, locationOptions, locationValue, openFlags, openGaps, progress, statusClass } from "../lib.ts";
-import { ConfirmButton, Ctl, InlineText, LocationSelect, Popover } from "./ui.tsx";
+import { ConfirmButton, Ctl, InlineText, LocationSelect, Popover, useNarrow } from "./ui.tsx";
 
 export type Cmd = (name: string, args?: Record<string, unknown>) => Promise<unknown>;
 
-const WORLD_W = 1400;
+/** PC: フレーム3列。スマホ幅: 1列(フレーム430px + world padding 8px×2)にして「全体」で幅にフィットさせる。 */
+const WORLD_W_WIDE = 1400;
+const WORLD_W_NARROW = 430 + 16;
+const SCALE_MIN = 0.15;
+const SCALE_MAX = 2;
 
 export function Canvas({ board, cmd, focus, toast }: { board: Board; cmd: Cmd; focus: { id: string; n: number } | null; toast: (m: string) => void }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
+  const narrow = useNarrow();
+  const worldW = narrow ? WORLD_W_NARROW : WORLD_W_WIDE;
   const [view, setView] = useState({ scale: 0.85, tx: 24, ty: 20 });
   const [wires, setWires] = useState<WireSeg[]>([]);
   const [flashId, setFlashId] = useState<string | null>(null);
@@ -19,25 +25,47 @@ export function Canvas({ board, cmd, focus, toast }: { board: Board; cmd: Cmd; f
     else els.current.delete(id);
   }, []);
 
-  // ---- pan / zoom ----
-  const pan = useRef<{ x: number; y: number } | null>(null);
+  // ---- pan / zoom (マウス: ドラッグ+ホイール / タッチ: 1本指パン+2本指ピンチ) ----
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const gesture = useRef<{ x: number; y: number; dist: number } | null>(null); // 前フレームの重心(viewport座標)と2点間距離
+  const centroid = () => {
+    const pts = [...pointers.current.values()];
+    const vp = viewportRef.current!.getBoundingClientRect();
+    const x = pts.reduce((a, p) => a + p.x, 0) / pts.length - vp.left;
+    const y = pts.reduce((a, p) => a + p.y, 0) / pts.length - vp.top;
+    const dist = pts.length >= 2 ? Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) : 0;
+    return { x, y, dist };
+  };
   const onPointerDown = (e: React.PointerEvent) => {
     const t = e.target as HTMLElement;
     if (t.closest("button, input, textarea, select, .pop, [contenteditable]")) return;
-    pan.current = { x: e.clientX, y: e.clientY };
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     viewportRef.current?.setPointerCapture(e.pointerId);
+    gesture.current = centroid();
   };
   const onPointerMove = (e: React.PointerEvent) => {
-    if (!pan.current) return;
-    const dx = e.clientX - pan.current.x,
-      dy = e.clientY - pan.current.y;
-    pan.current = { x: e.clientX, y: e.clientY };
-    setView((v) => ({ ...v, tx: v.tx + dx, ty: v.ty + dy }));
+    if (!pointers.current.has(e.pointerId) || !gesture.current) return;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const prev = gesture.current;
+    const cur = centroid();
+    gesture.current = cur;
+    const dx = cur.x - prev.x,
+      dy = cur.y - prev.y;
+    const factor = prev.dist > 0 && cur.dist > 0 ? cur.dist / prev.dist : 1;
+    setView((v) => {
+      const next = Math.min(SCALE_MAX, Math.max(SCALE_MIN, v.scale * factor));
+      const k = next / v.scale;
+      // 重心を不動点として拡縮し、その後に重心の移動分だけパン
+      return { scale: next, tx: cur.x - (cur.x - (v.tx + dx)) * k, ty: cur.y - (cur.y - (v.ty + dy)) * k };
+    });
   };
-  const onPointerUp = () => (pan.current = null);
+  const onPointerUp = (e: React.PointerEvent) => {
+    pointers.current.delete(e.pointerId);
+    gesture.current = pointers.current.size ? centroid() : null;
+  };
   const zoomAt = useCallback((factor: number, cx?: number, cy?: number) => {
     setView((v) => {
-      const next = Math.min(2, Math.max(0.3, v.scale * factor));
+      const next = Math.min(SCALE_MAX, Math.max(SCALE_MIN, v.scale * factor));
       const vp = viewportRef.current!;
       const px = cx ?? vp.clientWidth / 2,
         py = cy ?? vp.clientHeight / 2;
@@ -57,10 +85,14 @@ export function Canvas({ board, cmd, focus, toast }: { board: Board; cmd: Cmd; f
   const fit = useCallback(() => {
     const vp = viewportRef.current!,
       w = worldRef.current!;
-    const pad = 30;
-    const s = Math.max(0.3, Math.min((vp.clientWidth - pad * 2) / WORLD_W, (vp.clientHeight - pad * 2) / Math.max(400, w.scrollHeight), 1.2));
-    setView({ scale: s, tx: (vp.clientWidth - WORLD_W * s) / 2, ty: pad });
-  }, []);
+    // スマホ幅: 1列なので幅にフィット(縦はスクロール)。PC: 従来どおり全体が収まる倍率
+    const pad = narrow ? 8 : 30;
+    const byW = (vp.clientWidth - pad * 2) / worldW;
+    const byH = (vp.clientHeight - pad * 2) / Math.max(400, w.scrollHeight);
+    // PC は従来どおり 0.3 を下限にする(「全体」で無限に小さくしない)。手動ズームは SCALE_MIN まで可
+    const s = Math.max(narrow ? SCALE_MIN : 0.3, Math.min(narrow ? byW : Math.min(byW, byH), 1.2));
+    setView({ scale: s, tx: (vp.clientWidth - worldW * s) / 2, ty: pad });
+  }, [narrow, worldW]);
   useEffect(() => {
     fit();
   }, [fit, board.id]);
@@ -110,7 +142,7 @@ export function Canvas({ board, cmd, focus, toast }: { board: Board; cmd: Cmd; f
 
   return (
     <div className="viewport" ref={viewportRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
-      <div className="world" ref={worldRef} style={{ width: WORLD_W, transform: `translate(${view.tx}px,${view.ty}px) scale(${view.scale})` }}>
+      <div className="world" ref={worldRef} style={{ width: worldW, transform: `translate(${view.tx}px,${view.ty}px) scale(${view.scale})` }}>
         <svg className="wires" aria-hidden="true">
           <defs>
             <marker id="arrDanger" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
