@@ -26,19 +26,12 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run typecheck
       - run: npm test
-      - name: Build web + lambda bundle
-        run: |
-          npm run build
-          npm run build:lambda
-          cd build/lambda && zip -q ../lambda.zip index.mjs
+      - name: Build web
+        run: npm run build
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_GITHUB_ACTIONS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
-      - name: Update Lambda code
-        run: |
-          aws lambda update-function-code --function-name "${{ vars.LAMBDA_FUNCTION_NAME }}" --zip-file fileb://build/lambda.zip --no-cli-pager
-          aws lambda wait function-updated --function-name "${{ vars.LAMBDA_FUNCTION_NAME }}"
       - name: Sync SPA to S3
         run: aws s3 sync web/dist/ "s3://${{ vars.ASSETS_BUCKET }}/" --delete
       - name: Invalidate CloudFront
