@@ -1,5 +1,5 @@
 # GitHub Actions → AWS は OIDC(長期キーを Secrets に置かない)。
-# このロールはコードデプロイ専用の最小権限(Lambda コード更新・S3 同期・CloudFront 無効化のみ)。
+# このロールはコードデプロイ専用の最小権限(S3 同期・CloudFront 無効化のみ)。
 # terraform apply はローカルから実行する運用。
 
 # OIDC プロバイダはアカウントに 1 つ(他プロジェクトの Terraform が作成済み)なので参照のみ
@@ -39,11 +39,6 @@ resource "aws_iam_role" "github_actions_deploy" {
 }
 
 data "aws_iam_policy_document" "github_actions_deploy" {
-  statement {
-    sid       = "UpdateLambdaCode"
-    actions   = ["lambda:UpdateFunctionCode", "lambda:GetFunction", "lambda:GetFunctionConfiguration"]
-    resources = [aws_lambda_function.api.arn]
-  }
   statement {
     sid       = "SyncAssets"
     actions   = ["s3:PutObject", "s3:DeleteObject", "s3:ListBucket"]
